@@ -1,0 +1,136 @@
+{{- if .Values.minio.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-minio
+  labels:
+    app: {{ .Release.Name }}-minio
+spec:
+  serviceName: {{ .Release.Name }}-minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-minio
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - containerPort: 9000
+              name: api
+            - containerPort: 9001
+              name: console
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_ACCESS_KEY
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_SECRET_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.minio.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.minio.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-minio
+spec:
+  selector:
+    app: {{ .Release.Name }}-minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
+# One-shot Job that creates the "kreise" bucket on install/upgrade. Idempotent
+# (`mc mb` exits 0 when the bucket already exists with --ignore-existing).
+# We deliberately keep the failed-Job around (no `hook-succeeded` delete) so a
+# silent failure stays visible in `kubectl get jobs` for diagnosis.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bucket-init
+          image: minio/mc:latest
+          env:
+            # Order matters: the credential vars are read first, then composed
+            # into MC_HOST_minio. Kubernetes resolves $(VAR) in declaration
+            # order, so the credentials MUST come before MC_HOST_minio.
+            - name: STORAGE_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_ACCESS_KEY
+            - name: STORAGE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_SECRET_KEY
+            - name: STORAGE_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_BUCKET
+            - name: MINIO_HOST
+              value: "{{ .Release.Name }}-minio:9000"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              # Wait for MinIO to come up. Plain HTTP probe — `mc ready` has
+              # been flaky inside hooks (depends on alias resolution which we
+              # haven't set yet). 30s ceiling is plenty for a single replica.
+              for i in $(seq 1 30); do
+                if wget -qO- "http://${MINIO_HOST}/minio/health/ready" >/dev/null 2>&1; then
+                  echo "minio ready"
+                  break
+                fi
+                echo "minio not ready yet (attempt $i)"
+                sleep 2
+              done
+              mc alias set local "http://${MINIO_HOST}" "${STORAGE_ACCESS_KEY}" "${STORAGE_SECRET_KEY}"
+              mc mb --ignore-existing "local/${STORAGE_BUCKET}"
+              mc anonymous set download "local/${STORAGE_BUCKET}"
+              mc ls local/
+              echo "bucket ${STORAGE_BUCKET} ready"
+{{- end }}

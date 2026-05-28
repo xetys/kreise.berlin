@@ -1,0 +1,44 @@
+# Go
+/bin/
+*.exe
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Node
+node_modules/
+.next/
+out/
+.pnpm-store/
+npm-debug.log*
+yarn-error.log*
+
+# Build artifacts
+/dist/
+/tmp/
+
+# Local dev data (compose volumes when bind-mounted)
+/data/
+deploy/secrets.values.yaml
+
+# AI agent helper files — kept locally, never committed.
+# Pattern (no leading slash) matches CLAUDE.md / AGENTS.md anywhere in the tree
+# (root and per-subproject like frontend/CLAUDE.md). .claude/ holds per-user
+# settings.local.json from Claude Code.
+CLAUDE.md
+AGENTS.md
+.claude/
+CONCEPT.md

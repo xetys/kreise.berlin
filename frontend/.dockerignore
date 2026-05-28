@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+.turbo
+.git
+.DS_Store
+README.md
+*.log

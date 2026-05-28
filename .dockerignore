@@ -1,0 +1,28 @@
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+# Frontend build artifacts (the frontend image has its own .dockerignore)
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/.turbo
+
+# Backend build artifacts
+backend/bin
+bin
+
+# Local env / data
+.env
+.env.*
+data
+*.log
+/tmp
+docs/
+README.md
+CLAUDE.md
+AGENTS.md
+.claude/
+chart/
