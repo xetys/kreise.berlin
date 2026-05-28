@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
 import {api, APIError} from '@/lib/api';
+import {ThemeSwitcher} from '@/components/ThemeSwitcher';
 
 interface MeResponse {
   id: string;
@@ -111,6 +112,7 @@ export default function AdminLayout({children}: {children: React.ReactNode}) {
             </Link>
           </nav>
           <span className="text-sm text-neutral-500">{me.email}</span>
+          <ThemeSwitcher />
           <button
             onClick={handleLogout}
             className="text-sm text-neutral-700 dark:text-neutral-300 hover:underline"

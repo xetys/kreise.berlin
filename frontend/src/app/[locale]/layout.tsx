@@ -2,6 +2,7 @@ import {notFound} from 'next/navigation';
 import {NextIntlClientProvider, hasLocale} from 'next-intl';
 import {setRequestLocale, getMessages} from 'next-intl/server';
 import {routing} from '@/i18n/routing';
+import {ThemeProvider} from '@/components/ThemeProvider';
 
 /**
  * Per-locale layout boundary. This is what makes the language switcher feel
@@ -32,7 +33,7 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      {children}
+      <ThemeProvider>{children}</ThemeProvider>
     </NextIntlClientProvider>
   );
 }

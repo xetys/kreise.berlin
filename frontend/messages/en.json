@@ -170,5 +170,13 @@
     "mismatch": "The passwords don't match.",
     "tooShort": "Password must be at least 12 characters.",
     "invalidToken": "The setup link is invalid or expired. Ask an admin for a fresh invitation."
+  },
+  "theme": {
+    "label": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "cycle": "Switch to {next}"
   }
 }

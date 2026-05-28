@@ -42,3 +42,7 @@ CLAUDE.md
 AGENTS.md
 .claude/
 CONCEPT.md
+
+# Operator runbook: contains kubeconfig path, registry routing and other
+# environment-specific details that shouldn't live in a public repo.
+docs/PROD_DEPLOYMENT.md

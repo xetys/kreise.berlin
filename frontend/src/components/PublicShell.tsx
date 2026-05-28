@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import {LegalLinks} from './LegalLinks';
 import {LocaleSwitcher} from './LocaleSwitcher';
+import {Logo} from './Logo';
+import {ThemeSwitcher} from './ThemeSwitcher';
 
 /**
  * Generic public-page wrapper: thin top header with the site title, main slot
@@ -14,18 +16,20 @@ export function PublicShell({locale, children}: {locale: string; children: React
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950">
       <header className="border-b border-neutral-200 dark:border-neutral-900">
-        <div className="max-w-3xl mx-auto px-5 py-5 flex items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
           <Link
             href={`/${locale}`}
-            className="text-[11px] uppercase tracking-[0.22em] font-medium"
+            className="flex items-center gap-3"
+            aria-label="kreise.berlin"
           >
-            {locale === 'en' ? 'Events' : 'Veranstaltungen'}
-          </Link>
-          <div className="flex items-center gap-4">
-            <LocaleSwitcher current={locale === 'en' ? 'en' : 'de'} />
-            <span className="hidden sm:inline text-[10px] uppercase tracking-[0.18em] opacity-50">
-              kreise.berlin
+            <Logo size={28} variant="mark" priority />
+            <span className="text-[11px] uppercase tracking-[0.22em] font-medium">
+              {locale === 'en' ? 'Events' : 'Veranstaltungen'}
             </span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <LocaleSwitcher current={locale === 'en' ? 'en' : 'de'} />
+            <ThemeSwitcher />
           </div>
         </div>
       </header>

@@ -1,0 +1,89 @@
+# Defaults — override per-environment via -f or --set.
+
+image:
+  # Cluster has a ghcr-proxy DaemonSet (registry:2.8.1 on host network,
+  # 127.0.0.1:5000 on every node) that proxies ghcr.io with pre-configured
+  # upstream auth. Containerd on each node pulls via the local proxy → no
+  # imagePullSecret needed in this namespace. Override to ghcr.io/... for
+  # local kind / non-stytex clusters that don't have the proxy.
+  repository: 127.0.0.1:5000/xetys/kreise-berlin
+  tag: latest        # overridden by `make helm-deploy IMAGE_TAG=...`
+  pullPolicy: Always
+
+imagePullSecrets: []
+
+backend:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits:   {cpu: 500m, memory: 256Mi}
+
+frontend:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits:   {cpu: 500m, memory: 256Mi}
+
+ingress:
+  enabled: true
+  className: nginx
+  host: kreise.berlin
+  clusterIssuer: letsencrypt-prod
+
+postgres:
+  enabled: true
+  storage: 5Gi
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits:   {cpu: 500m, memory: 512Mi}
+
+minio:
+  enabled: true
+  storage: 10Gi
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits:   {cpu: 200m, memory: 256Mi}
+
+# Application secrets. Set via --set-string or -f secrets.values.yaml at deploy
+# time; never commit real values to git.
+app:
+  # 32-byte random base64 string. `openssl rand -base64 32` to generate.
+  tokenSigningKey: ""
+  # Postgres password used both by the in-cluster postgres and the backend.
+  postgresPassword: ""
+  # MinIO root credentials (used by the in-cluster MinIO and by the backend).
+  minioAccessKey: ""
+  minioSecretKey: ""
+  # SES sender. Display-name is bare RFC 5322 (e.g. "kreise.berlin"). Sender
+  # domain MUST match the SES verified identity (kreise.berlin since 2026-05-10
+  # — see the dedicated awscred IAM user with ses:SendRawEmail / SendEmail
+  # restricted to *@kreise.berlin).
+  mailFrom: "noreply@kreise.berlin"
+  mailFromDisplayName: "kreise.berlin"
+  # RFC 8058 List-Unsubscribe / List-Unsubscribe-Post headers — Gmail uses the
+  # *presence* of these as a domain-reputation signal even for transactional
+  # mail. The mailbox doesn't have to actually receive: Gmail's spam classifier
+  # checks the header is present and parseable, not that mail to it succeeds.
+  # For actual user-driven unsubscribes (Phase 11 newsletter) we'll switch to
+  # an HTTP one-click endpoint with a signed token.
+  mailUnsubscribeAddress: "unsubscribe@kreise.berlin"
+  awsRegion: "eu-central-1"
+  sesConfigurationSet: ""
+
+# Optional: external AWS-credentials secret (matches reference chart pattern).
+# Create separately:
+#   kubectl -n <ns> create secret generic awscred \
+#     --from-literal=AWS_ACCESS_KEY_ID=... \
+#     --from-literal=AWS_SECRET_ACCESS_KEY=...
+awsCredentialsSecret: awscred
+
+# Bootstrap-admin Job: runs once after install/upgrade to ensure a
+# global_admin exists. Idempotent — if a global_admin row already exists
+# the Job is a no-op. Setting bootstrapAdmin.enabled=false skips the Job
+# entirely (use this once your team is set up and you want to remove the
+# initial credentials from values).
+bootstrapAdmin:
+  enabled: true
+  email: ""
+  password: ""
+  displayName: ""

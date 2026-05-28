@@ -170,5 +170,13 @@
     "mismatch": "Die Passwörter stimmen nicht überein.",
     "tooShort": "Das Passwort muss mindestens 12 Zeichen lang sein.",
     "invalidToken": "Der Setup-Link ist ungültig oder abgelaufen. Frag einen Admin nach einer neuen Einladung."
+  },
+  "theme": {
+    "label": {
+      "system": "System",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "cycle": "Wechseln zu {next}"
   }
 }
