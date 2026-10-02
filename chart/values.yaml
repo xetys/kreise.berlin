@@ -37,8 +37,11 @@ postgres:
     requests: {cpu: 50m, memory: 128Mi}
     limits:   {cpu: 500m, memory: 512Mi}
 
-minio:
+# Single-node Garage (S3-compatible) object storage for event banners.
+# Pinned tag on purpose: never float object storage on :latest.
+garage:
   enabled: true
+  image: dxflrs/garage:v2.4.1
   storage: 10Gi
   resources:
     requests: {cpu: 50m, memory: 64Mi}
@@ -51,9 +54,19 @@ app:
   tokenSigningKey: ""
   # Postgres password used both by the in-cluster postgres and the backend.
   postgresPassword: ""
-  # MinIO root credentials (used by the in-cluster MinIO and by the backend).
-  minioAccessKey: ""
-  minioSecretKey: ""
+  # Garage S3 credentials, used by the in-cluster Garage (imported on first
+  # start) and by the backend. Garage requires the key ID to be >= 8 chars of
+  # [A-Za-z0-9._-] and the secret >= 16 printable ASCII chars, e.g.:
+  #   storageAccessKey: "GK$(openssl rand -hex 12)"
+  #   storageSecretKey: "$(openssl rand -hex 32)"
+  # Garage refuses to start if the key already exists with a different
+  # secret, so rotate via the admin API, not by editing these values.
+  storageAccessKey: ""
+  storageSecretKey: ""
+  # Garage internal secrets. rpcSecret: `openssl rand -hex 32` (32 bytes hex);
+  # adminToken: `openssl rand -base64 32`.
+  garageRpcSecret: ""
+  garageAdminToken: ""
   # SES sender. Display-name is bare RFC 5322 (e.g. "kreise.berlin"). Sender
   # domain MUST match the SES verified identity (kreise.berlin since 2026-05-10
   # — see the dedicated awscred IAM user with ses:SendRawEmail / SendEmail

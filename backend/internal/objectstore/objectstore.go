@@ -1,7 +1,7 @@
-// Package objectstore wraps an S3-compatible client (real AWS S3 in prod,
-// MinIO in dev) behind a small Put/Get/Delete/Exists API. Banner pass-through
-// in Phase 2 builds on this; same interface stays valid if the prod backend
-// later swaps to Cloudflare R2 or a provider-native bucket.
+// Package objectstore wraps an S3-compatible client (Garage in dev and in the
+// Helm chart; any S3 endpoint works) behind a small Put/Get/Delete/Exists API.
+// Banner pass-through in Phase 2 builds on this; same interface stays valid if
+// the prod backend later swaps to Cloudflare R2 or a provider-native bucket.
 package objectstore
 
 import (
@@ -18,12 +18,12 @@ import (
 )
 
 type Config struct {
-	Endpoint     string // empty = AWS S3 default; e.g. "http://localhost:9000" for MinIO
+	Endpoint     string // empty = AWS S3 default; e.g. "http://localhost:3900" for Garage
 	Region       string
 	Bucket       string
 	AccessKey    string
 	SecretKey    string
-	UsePathStyle bool // true for MinIO; false for AWS S3 virtual-hosted style
+	UsePathStyle bool // true for Garage; false for AWS S3 virtual-hosted style
 }
 
 type Client struct {

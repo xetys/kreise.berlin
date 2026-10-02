@@ -105,7 +105,7 @@ export default async function DatenschutzPage({
               Diese Website wird auf einem Kubernetes-Cluster bei der SysEleven GmbH,
               Boxhagener Straße 80, 10245 Berlin gehostet (MetaKube). Banner- und
               Mediendateien sowie alle personenbezogenen Buchungsdaten liegen im
-              gleichen Cluster (PostgreSQL und MinIO als interne Komponenten). Die
+              gleichen Cluster (PostgreSQL und Garage als interne Komponenten). Die
               Daten verlassen den deutschen Hosting-Standort nicht.
             </p>
             <p>

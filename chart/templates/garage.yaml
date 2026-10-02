@@ -1,0 +1,123 @@
+{{- if .Values.garage.enabled }}
+# Single-node Garage (S3-compatible object storage), which replaced the
+# MinIO. `--single-node --default-bucket` lays out the one-node cluster and
+# creates the bucket plus the access key from GARAGE_DEFAULT_* on startup, so
+# no bootstrap Job is needed. replication_factor = 1 means no redundancy: the
+# PVC is the only copy, back it up off-cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-garage
+data:
+  garage.toml: |
+    metadata_dir = "/var/lib/garage/meta"
+    data_dir = "/var/lib/garage/data"
+    db_engine = "sqlite"
+
+    replication_factor = 1
+
+    rpc_bind_addr = "[::]:3901"
+    rpc_public_addr = "127.0.0.1:3901"
+
+    [s3_api]
+    # Must match STORAGE_REGION in the app secret (requests are SigV4-signed
+    # with that region).
+    s3_region = "us-east-1"
+    api_bind_addr = "[::]:3900"
+
+    [admin]
+    api_bind_addr = "[::]:3903"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-garage
+  labels:
+    app: {{ .Release.Name }}-garage
+spec:
+  serviceName: {{ .Release.Name }}-garage
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-garage
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-garage
+    spec:
+      containers:
+        - name: garage
+          image: {{ .Values.garage.image }}
+          imagePullPolicy: IfNotPresent
+          command: ["/garage"]
+          args: ["server", "--single-node", "--default-bucket"]
+          ports:
+            - containerPort: 3900
+              name: s3
+            - containerPort: 3903
+              name: admin
+          env:
+            - name: GARAGE_RPC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: GARAGE_RPC_SECRET
+            - name: GARAGE_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: GARAGE_ADMIN_TOKEN
+            - name: GARAGE_DEFAULT_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_ACCESS_KEY
+            - name: GARAGE_DEFAULT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_SECRET_KEY
+            - name: GARAGE_DEFAULT_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-app
+                  key: STORAGE_BUCKET
+          volumeMounts:
+            - name: config
+              mountPath: /etc/garage.toml
+              subPath: garage.toml
+            - name: data
+              mountPath: /var/lib/garage
+          resources:
+            {{- toYaml .Values.garage.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3903
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-garage
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.garage.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-garage
+spec:
+  selector:
+    app: {{ .Release.Name }}-garage
+  ports:
+    - name: s3
+      port: 3900
+      targetPort: 3900
+{{- end }}

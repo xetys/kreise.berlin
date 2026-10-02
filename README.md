@@ -32,7 +32,7 @@ All transactional email goes through Amazon SES, bilingual DE + EN.
 
 - **Backend** — Go 1.25, `chi` HTTP router, `sqlc` + `pgx/v5` for type-safe queries, `goose` migrations embedded into the binary, `argon2id` password hashing, session cookies validated against a versioned password counter for instant force-logout.
 - **Frontend** — Next.js 16 (App Router) + TypeScript, Tailwind CSS v4, `next-intl` (DE default, EN sister locale, instant client-side switching).
-- **Datastore** — PostgreSQL 16. **Object storage** — MinIO (S3-compatible; same code path for AWS S3 in production).
+- **Datastore** — PostgreSQL 16. **Object storage** — Garage (S3-compatible, single node; same code path works against any S3 endpoint).
 - **Email** — Amazon SES.
 - **Payments** — manually reconciled: bank transfer, PayPal.me link per event, or at-door cash. No payment-gateway callbacks.
 - **Deploy** — Docker images on `linux/amd64`, packaged as a Helm chart.
@@ -54,7 +54,7 @@ The roadmap and architectural decision log live in [`docs/ROADMAP.md`](docs/ROAD
 
 ```sh
 cp .env.example .env       # adjust DB and mail credentials as needed
-make up                    # bring up Postgres, MinIO, Adminer (background)
+make up                    # bring up Postgres, Garage, Adminer (background)
 make migrate-up            # apply all pending migrations
 make seed                  # (optional) seed a reference event for poking around
 ```
@@ -64,7 +64,7 @@ The compose stack runs on:
 | Service  | URL                                    |
 | -------- | -------------------------------------- |
 | Postgres | `postgres://tickets:tickets@localhost:5432/tickets` |
-| MinIO    | `http://localhost:9000` (S3 API), `:9001` (console) |
+| Garage   | `http://localhost:3900` (S3 API), `:3903` (admin, `/health`) |
 | Adminer  | `http://localhost:8081`                |
 
 ### Running the servers
@@ -149,7 +149,7 @@ Renders all chart templates to stdout so the diff between the current and propos
 
 ### Upgrade or install
 
-Production secrets (signing key, DB password, MinIO creds, SES credentials) live outside the chart in a values file kept on the operator's machine — `deploy/secrets.values.yaml`, which is gitignored.
+Production secrets (signing key, DB password, Garage/storage creds, SES credentials) live outside the chart in a values file kept on the operator's machine — `deploy/secrets.values.yaml`, which is gitignored.
 
 ```sh
 make helm-deploy \
@@ -166,7 +166,7 @@ KUBECONFIG=$KUBECONFIG_PATH kubectl -n kreise-berlin rollout status deploy/kreis
 KUBECONFIG=$KUBECONFIG_PATH kubectl -n kreise-berlin rollout status deploy/kreise-frontend --timeout=90s
 ```
 
-The chart includes the backend Deployment, frontend Deployment, in-cluster Postgres, in-cluster MinIO with a bucket-bootstrap Job, Ingress, Service, and a one-shot Job that seeds the first `global_admin` on a fresh install.
+The chart includes the backend Deployment, frontend Deployment, in-cluster Postgres, in-cluster Garage (creates its bucket and access key on first start), Ingress, Service, and a one-shot Job that seeds the first `global_admin` on a fresh install.
 
 ### Rollback
 

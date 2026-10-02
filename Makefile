@@ -22,7 +22,7 @@ help: ## Show available targets
 # --- compose ---
 
 .PHONY: up down logs reset-db
-up: ## Start dev infra (Postgres, MinIO, mailcatcher, Adminer)
+up: ## Start dev infra (Postgres, Garage, Adminer)
 	docker compose up -d
 
 down: ## Stop dev infra
@@ -167,8 +167,10 @@ helm-template: ## Render the chart locally (sanity-check before deploy)
 	  --set image.tag=$(IMAGE_TAG) \
 	  --set app.tokenSigningKey=dummy \
 	  --set app.postgresPassword=dummy \
-	  --set app.minioAccessKey=dummy \
-	  --set app.minioSecretKey=dummy
+	  --set app.storageAccessKey=dummy \
+	  --set app.storageSecretKey=dummy \
+	  --set app.garageRpcSecret=dummy \
+	  --set app.garageAdminToken=dummy
 
 helm-deploy: ## helm upgrade --install (requires DEPLOY_VALUES=path/to/secrets.yaml)
 	@test -n "$(DEPLOY_VALUES)" || (echo "DEPLOY_VALUES=path/to/secrets.yaml is required" && exit 2)
